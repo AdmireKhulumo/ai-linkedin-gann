@@ -28,8 +28,6 @@ const invoke = async <T extends ZodObject<any>>(
     modelProvider?: string
 ): Promise<AIInvokeResult<z.infer<T>>> => {
     try {
-        console.debug({ modelName, modelProvider, temperature: settings.temperature }, 'Invoking AI model');
-
         const model = await initChatModel(modelName, {
             modelProvider,
             temperature: settings.temperature,
@@ -53,7 +51,6 @@ const invoke = async <T extends ZodObject<any>>(
             return { success: false, error: Error('No structured response from AI invocation.') };
         }
 
-        console.debug('AI invocation successful');
         return {
             success: true,
             response: structuredResponse as z.infer<T>,
