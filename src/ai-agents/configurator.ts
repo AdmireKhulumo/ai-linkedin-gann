@@ -26,10 +26,11 @@ export type ConfiguratorHistoryEntry = {
 
 const DEFAULT_MODEL_NAME = 'gpt-4o-mini';
 const DEFAULT_MODEL_PROVIDER = 'openai';
-const DEFAULT_SYSTEM_PROMPT = `You are a configurator for a GAN-like setup.
-- A generator produces text from a prompt using an LLM with a given temperature.
-- A discriminator scores that text (e.g. funniness 0–10).
-- Your job: given the generator's prompt, the config (especially temperature) that was used, and the score, suggest the temperature the generator should use NEXT so that the next score is likely to be higher.
+const DEFAULT_SYSTEM_PROMPT = `You are a configurator for a GAN-like setup where the generator summarises a CV according to a prompt and the discriminator scores how well the summary and choice of experiences match the prompt (0–10; 10 = perfect, 0 = very bad).
+
+- The generator produces a summary from the source CV and a given instruction, using an LLM with a given temperature.
+- The discriminator scores that summary for quality and relevance (not funniness).
+- Your job: given the generator's instruction, the config (especially temperature) that was used, and the score, suggest the temperature the generator should use NEXT so that the next score is likely to be higher.
 
 Consider:
 - Lower temperature (e.g. 0.3–0.6) tends to be more focused and consistent; higher (e.g. 0.7–1.2) more creative/random.
@@ -61,14 +62,16 @@ export function clearHistory(): void {
 
 /**
  * Configurator: receives generator config + prompt + discriminator score,
- * uses in-memory history, and suggests the next temperature to maximise score.
+ * optional CV context, uses in-memory history, and suggests the next temperature to maximise score.
  */
 export async function suggestNextTemperature(params: {
     generatorPrompt: string;
     generatorConfig: GeneratorConfigSnapshot;
     score: number;
+    /** Optional: source CV content for context (same as used by generator and discriminator). */
+    cvContent?: string;
 }): Promise<AIInvokeResult<number>> {
-    const { generatorPrompt, generatorConfig, score } = params;
+    const { generatorPrompt, generatorConfig, score, cvContent } = params;
 
     const entry: ConfiguratorHistoryEntry = {
         generatorPrompt,
@@ -90,7 +93,11 @@ export async function suggestNextTemperature(params: {
                 })
                 .join('\n');
 
-    const userPrompt = `History of runs (most recent last):\n${historyBlock}\n\nCurrent run we just got the score for: prompt="${generatorPrompt}", temperature=${generatorConfig.temperature}, score=${score}.\nWhat temperature should the generator use for the NEXT run to maximise the score? Reply with a single number between 0 and 2.`;
+    const cvBlock =
+        cvContent != null
+            ? `\n\nSource CV context (same text the generator summarises):\n${cvContent.slice(0, 2000)}${cvContent.length > 2000 ? '...' : ''}`
+            : '';
+    const userPrompt = `History of runs (most recent last):\n${historyBlock}\n\nCurrent run we just got the score for: prompt="${generatorPrompt}", temperature=${generatorConfig.temperature}, score=${score}.${cvBlock}\n\nWhat temperature should the generator use for the NEXT run to maximise the score? Reply with a single number between 0 and 2.`;
 
     const result = await langchainClient.invoke(
         DEFAULT_MODEL_NAME,
