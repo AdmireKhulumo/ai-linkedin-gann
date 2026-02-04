@@ -5,9 +5,10 @@ import { run as runGenerator, type GeneratorSettings } from './ai-agents/generat
 import { run as runDiscriminator } from './ai-agents/discriminator';
 import { suggestNextPrompt, type GeneratorConfigSnapshot } from './ai-agents/configurator';
 
-const CV_PATH = path.join(process.cwd(), 'cv.txt');
-const JOB_REQUIREMENTS_PATH = path.join(process.cwd(), 'job-requirements.txt');
-const EXPECTED_EXPERIENCES_PATH = path.join(process.cwd(), 'expected-experiences.txt');
+const INPUTS_DIR = path.join(process.cwd(), 'src', 'ai-inputs');
+const CV_PATH = path.join(INPUTS_DIR, 'cv.txt');
+const JOB_REQUIREMENTS_PATH = path.join(INPUTS_DIR, 'job-requirements.txt');
+const EXPECTED_EXPERIENCES_PATH = path.join(INPUTS_DIR, 'expected-experiences.txt');
 const NUM_ROUNDS = 5;
 
 const INITIAL_GENERATOR_PROMPT =
